@@ -27,6 +27,6 @@ jobs:
       - run: apt-get update && apt-get install -y --no-install-recommends python3 python3-apt python3-tk xvfb xauth git ca-certificates desktop-file-utils
       - uses: actions/checkout@v7.0.1
       - run: PYTHONPATH=src python3 -m unittest discover -s tests -v
-      - run: PYTHONPATH=src python3 -m systemsentinel scan --updates --format json > /tmp/sentinel-inventory.json
+      - run: PYTHONPATH=src python3 -m systemsentinel scan --updates --config --format json > /tmp/sentinel-inventory.json
       - run: desktop-file-validate desktop/systemsentinel.desktop
       - run: PYTHONPATH=src xvfb-run -a python3 tests/gui_smoke.py

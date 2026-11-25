@@ -7,6 +7,7 @@ from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import read_cache
 from .updates import collect_updates
 from .download import download_release
+from .checks import audit_config
 
 
 def scan_local(path="", digest="", allow_synthetic=False, cached=False):
@@ -48,6 +49,7 @@ def main():
     synthetic = tk.BooleanVar()
     cached = tk.BooleanVar()
     apt_updates = tk.BooleanVar()
+    config_baseline = tk.BooleanVar()
     ttk.Label(top, text="Advisory snapshot (optional)").grid(row=2, column=0, sticky="w", padx=(0, 10))
     ttk.Entry(top, textvariable=path).grid(row=2, column=1, sticky="ew")
     def browse():
@@ -60,6 +62,7 @@ def main():
     ttk.Checkbutton(top, text="Allow fictional test data", variable=synthetic).grid(row=4, column=1, sticky="w")
     ttk.Checkbutton(top, text="Use imported offline database", variable=cached).grid(row=5, column=1, sticky="w")
     ttk.Checkbutton(top, text="Check available APT updates (existing indexes)", variable=apt_updates).grid(row=6, column=1, sticky="w")
+    ttk.Checkbutton(top, text="Review basic system file permissions", variable=config_baseline).grid(row=7, column=1, sticky="w")
     status = tk.StringVar(value="Ready. Choose an optional snapshot, then start a scan.")
     summary = ttk.Label(root, textvariable=status, padding=(16, 6), wraplength=850)
     summary.grid(row=1, column=0, sticky="ew")
@@ -87,12 +90,14 @@ def main():
     inventory = make_table("Installed packages", ("Package", "Version", "Architecture"), (280, 380, 100))
     patch_table = make_table("Vendor patch guidance", ("Package", "Installed", "Fixed", "Advisory"), (220, 200, 200, 150))
     update_table = make_table("Available APT updates", ("Package", "Installed", "Candidate", "Source"), (220, 200, 200, 150))
+    config_table = make_table("Configuration baseline", ("Path", "Status", "Details"), (240, 120, 480))
     detail = tk.StringVar(value="Select a vendor finding to see its recommendation and reference.")
     ttk.Label(root, textvariable=detail, padding=(16, 4), wraplength=850).grid(row=3, column=0, sticky="ew")
     footer = ttk.Frame(root, padding=(16, 4, 16, 16))
     footer.grid(row=4, column=0, sticky="ew")
     results = queue.Queue()
     current_findings = {}
+    current_checks = {}
 
     def selection(_event):
         selected = patch_table.selection()
@@ -100,6 +105,11 @@ def main():
             finding = current_findings[selected[0]]
             detail.set(f"{finding['recommendation']} Reference: {finding['reference']}")
     patch_table.bind("<<TreeviewSelect>>", selection)
+    def config_selection(_event):
+        selected = config_table.selection()
+        if selected and selected[0] in current_checks:
+            detail.set(current_checks[selected[0]]["recommendation"])
+    config_table.bind("<<TreeviewSelect>>", config_selection)
 
     def poll():
         try:
@@ -113,7 +123,7 @@ def main():
             status.set("Scan failed. No current results.")
             messagebox.showerror("Scan failed", str(result))
             return
-        (os_info, packages, metadata, findings), updates = result
+        (os_info, packages, metadata, findings), updates, checks = result
         for p in packages:
             inventory.insert("", "end", values=(p.name, p.version, p.architecture))
         for f in findings:
@@ -138,6 +148,13 @@ def main():
                 update_table.insert("", "end", values=(item["package"], item["installed_version"], item["candidate_version"], "Security pocket" if item["security_pocket"] else "General/other"))
             status.set(status.get() + f" APT candidates: {len(updates)}; index freshness unknown.")
             tabs.select(2)
+        if checks is not None:
+            for item in checks:
+                key = config_table.insert("", "end", values=(item["path"], item["status"].upper(), item["detail"]))
+                current_checks[key] = item
+            review = sum(item["status"] == "review" for item in checks)
+            status.set(status.get() + f" Configuration: {review} to review across {len(checks)} checks.")
+            tabs.select(3)
 
     def run():
         snapshot_path, expected_digest, allow = path.get().strip(), digest.get().strip(), synthetic.get()
@@ -149,18 +166,20 @@ def main():
             messagebox.showerror("Snapshot required", "Choose a snapshot before using its options.")
             return
         check_updates = apt_updates.get()
-        for table in (inventory, patch_table, update_table):
+        check_config = config_baseline.get()
+        for table in (inventory, patch_table, update_table, config_table):
             children = table.get_children()
             if children:
                 table.delete(*children)
         current_findings.clear()
+        current_checks.clear()
         detail.set("Select a vendor finding to see its recommendation and reference.")
         scan_button.configure(state="disabled")
         import_button.configure(state="disabled")
         status.set("Scanning local package information…")
         def worker():
             try:
-                results.put((True, (scan_local(snapshot_path, expected_digest, allow, use_cache), collect_updates() if check_updates else None)))
+                results.put((True, (scan_local(snapshot_path, expected_digest, allow, use_cache), collect_updates() if check_updates else None, audit_config() if check_config else None)))
             except Exception as exc:
                 results.put((False, exc))
         threading.Thread(target=worker, daemon=True).start()
@@ -193,11 +212,12 @@ def main():
             import_button.configure(state="normal")
             scan_button.configure(state="normal")
             if ok:
-                for table in (inventory, patch_table, update_table):
+                for table in (inventory, patch_table, update_table, config_table):
                     children = table.get_children()
                     if children:
                         table.delete(*children)
                 current_findings.clear()
+                current_checks.clear()
                 detail.set("Start a new scan to view current guidance.")
                 path.set("")
                 digest.set("")

@@ -9,6 +9,7 @@ from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import cache_path, import_snapshot, read_cache
 from .updates import collect_updates
 from .download import download_release
+from .checks import audit_config
 from .inventory import InventoryError, collect_packages, detect_os
 
 
@@ -21,6 +22,7 @@ def main(argv=None) -> int:
     scan.add_argument("--db", help="Path to a local vendor advisory snapshot")
     scan.add_argument("--sha256", help="Expected snapshot SHA-256 from a trusted source")
     scan.add_argument("--allow-synthetic", action="store_true", help="Permit fictional data for testing only")
+    scan.add_argument("--config", action="store_true", help="Audit a limited local file-permissions baseline")
     scan.add_argument("--updates", action="store_true", help="Review local APT update candidates without refreshing indexes")
     scan.add_argument("--offline", action="store_true", help="Use the previously imported local snapshot")
     update = commands.add_parser("update", help="Verify and import a local or GitHub release snapshot")
@@ -57,9 +59,12 @@ def main(argv=None) -> int:
     findings = []
     status = "not_configured"
     updates = None
+    checks = None
     try:
         os_info = detect_os()
         packages = collect_packages(os_info)
+        if args.config:
+            checks = audit_config()
         if args.updates:
             updates = collect_updates()
         if args.db or args.offline:
@@ -83,6 +88,7 @@ def main(argv=None) -> int:
             "database": metadata,
             "patch_findings": findings,
             "apt_update_candidates": updates,
+            "configuration_checks": checks,
             "apt_metadata_refreshed": False,
             "packages": [asdict(package) for package in packages],
         }, indent=2))
@@ -106,6 +112,13 @@ def main(argv=None) -> int:
             for update in updates:
                 category = "security pocket" if update["security_pocket"] else "general/other"
                 print(f"  {update['package']}: {update['installed_version']} -> {update['candidate_version']} ({category})")
+        if checks is not None:
+            review_count = sum(check["status"] == "review" for check in checks)
+            print(f"Configuration baseline: {review_count} items to review ({len(checks)} checks).")
+            for check in checks:
+                print(f"  [{check['status'].upper()}] {check['path']}: {check['detail']}")
+                if check["status"] != "pass":
+                    print(f"    {check['recommendation']}")
         for package in packages:
             print(f"{package.name}:{package.architecture}\t{package.version}")
     return 0

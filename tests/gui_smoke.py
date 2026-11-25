@@ -19,12 +19,18 @@ def start():
     if len(buttons) != 1:
         root.destroy()
         return
+    config = [w for w in descendants(root) if isinstance(w, ttk.Checkbutton)
+              and w.cget("text") == "Review basic system file permissions"]
+    if len(config) != 1:
+        root.destroy()
+        return
+    config[0].invoke()
     buttons[0].invoke()
 
 
 def check():
     positions = [w for w in descendants(root) if isinstance(w, ttk.Treeview)]
-    if positions and positions[0].get_children():
+    if len(positions) == 4 and positions[0].get_children() and len(positions[3].get_children()) == 6:
         result["passed"] = True
         root.destroy()
     else:

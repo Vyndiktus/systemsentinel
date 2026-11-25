@@ -93,3 +93,11 @@ systemsentinel scan --offline
 The update command downloads only `snapshot.json` from the named project release, verifies it, then atomically replaces the local cache. It does not send the package inventory or install anything. A failed download or verification preserves the previous cache. Fictional test snapshots require explicit test-mode opt-in and must not be used for production assessments.
 
 Desktop users can choose **Import GitHub release…**, enter the tag and trusted digest, and then click **Start scan**.
+
+## Basic configuration review
+
+```sh
+systemsentinel scan --config
+```
+
+The configuration baseline reviews metadata (ownership and permission bits) for six standard system files. It never reads private file contents or changes permissions. A review result calls for comparison with distribution defaults; a pass only describes this single check, not overall system security. The desktop interface offers the same option.

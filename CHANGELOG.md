@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added a read-only system file permissions baseline in CLI and GUI reports.
+
 ## 0.1.0.dev1
 
 - Added explicit reporting when a snapshot contains no records for the host's exact distribution and release.
