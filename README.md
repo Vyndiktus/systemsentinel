@@ -9,7 +9,7 @@ A lightweight, read-only Linux security maintenance assistant for system adminis
 Download the `.deb` package from the [GitHub release page](https://github.com/Vyndiktus/systemsentinel/releases) and verify its SHA-256 digest. From the download directory:
 
 ```sh
-sudo apt install ./systemsentinel_0.1.0~dev3_all.deb
+sudo apt install ./systemsentinel_0.1.0.dev3_all.deb
 systemsentinel --version
 ```
 
