@@ -10,6 +10,7 @@ from .download import download_release
 from .checks import audit_config
 from .reporting import build_report, save_report
 from .lifecycle import lifecycle_message
+from .client import check_client
 from importlib.util import find_spec
 
 
@@ -45,7 +46,7 @@ def main():
     top = ttk.Frame(root, padding=16)
     top.grid(row=0, column=0, sticky="ew")
     top.columnconfigure(1, weight=1)
-    ttk.Label(top, text="SystemSentinel", font=("TkDefaultFont", 20, "bold")).grid(row=0, column=0, columnspan=3, sticky="w")
+    ttk.Label(top, text="SystemSentinel", font=("TkDefaultFont", 20, "bold")).grid(row=0, column=0, columnspan=2, sticky="w")
     ttk.Label(top, text="Read-only package inventory and vendor patch guidance").grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 12))
     path = tk.StringVar()
     digest = tk.StringVar()
@@ -257,6 +258,36 @@ def main():
     save_button = ttk.Button(footer, text="Save report…", command=export_report, state="disabled")
     save_button.pack(side="left", padx=8)
     ttk.Label(footer, text="No package or system setting changes.").pack(side="left", padx=12)
+    def review_client():
+        client_button.configure(state="disabled")
+        messages = queue.Queue()
+        def worker():
+            try:
+                messages.put((True, check_client()))
+            except Exception as exc:
+                messages.put((False, exc))
+        def poll_client():
+            try:
+                ok, result = messages.get_nowait()
+            except queue.Empty:
+                root.after(100, poll_client)
+                return
+            client_button.configure(state="normal")
+            if not ok:
+                messagebox.showerror("Application update check", str(result))
+                return
+            text = (f"Installed: {result['installed_version']}\nPublished: {result['latest_tag']}\n"
+                    f"Status: {result['status'].replace('_', ' ')}\n\n"
+                    "Open the official release page to review downloads and checksums? "
+                    "Updates are not installed automatically.")
+            if messagebox.askyesno("Application update check", text):
+                import webbrowser
+                webbrowser.open(result["release_url"])
+        threading.Thread(target=worker, daemon=True).start()
+        root.after(100, poll_client)
+
+    client_button = ttk.Button(top, text="Check app update…", command=review_client)
+    client_button.grid(row=0, column=2, sticky="e")
     root.mainloop()
     return 0
 

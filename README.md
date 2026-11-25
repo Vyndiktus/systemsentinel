@@ -9,7 +9,7 @@ A lightweight, read-only Linux security maintenance assistant for system adminis
 Download the `.deb` package from the [GitHub release page](https://github.com/Vyndiktus/systemsentinel/releases) and verify its SHA-256 digest. From the download directory:
 
 ```sh
-sudo apt install ./systemsentinel_0.1.0.dev4_all.deb
+sudo apt install ./systemsentinel_0.1.0.dev5_all.deb
 systemsentinel --version
 ```
 
@@ -134,3 +134,14 @@ systemsentinel scan --security --format html > report.html
 This runs local APT candidate review and the permissions baseline together. The GUI enables these checks by default when its APT dependency is available. Every report also compares the exact installed distribution release with the bundled, reviewed SystemSentinel-DB maintenance catalog and includes official defensive references. Catalogs are versioned in [SystemSentinel-DB](https://github.com/Vyndiktus/systemsentinel-db); a bundled copy is provided for offline use and refreshed with application releases.
 
 Neither the lifecycle nor source directory identifies individual exploited vulnerabilities; reports explicitly mark exploitation status as not assessed. The package-level advisory snapshot remains a separate feature and no production advisory data is bundled.
+
+
+## Application updates
+
+Check for a published client version (development previews are included):
+
+```sh
+systemsentinel client status
+```
+
+Desktop users can click **Check app update…**. The check retrieves only public GitHub release metadata and offers the official release page; it does not send host inventory, download executable code, or install packages. Verify the published checksum, then install the newer `.deb` through your normal package manager. Advisory database imports are separate from application updates.

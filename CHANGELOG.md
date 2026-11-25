@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0.dev5
+
+- Added explicit application update checks through CLI and desktop with official release links.
+
 ## 0.1.0.dev4
 
 - Added read-only APT release expiry summaries to CLI, desktop and exported reports.

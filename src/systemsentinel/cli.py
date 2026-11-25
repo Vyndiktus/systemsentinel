@@ -11,6 +11,7 @@ from .download import download_release
 from .checks import audit_config
 from .reporting import build_report, render_json, render_html
 from .lifecycle import lifecycle_message
+from .client import check_client
 from .inventory import InventoryError, collect_packages, detect_os
 
 
@@ -36,7 +37,16 @@ def main(argv=None) -> int:
     db = commands.add_parser("db", help="Show cached database status")
     db.add_argument("action", choices=("status",))
     db.add_argument("--allow-synthetic", action="store_true")
+    client = commands.add_parser("client", help="Check for a published application update")
+    client.add_argument("action", choices=("status",))
     args = parser.parse_args(argv)
+    if args.command == "client":
+        try:
+            print(json.dumps(check_client(), indent=2))
+            return 0
+        except InventoryError as exc:
+            print(f"systemsentinel: {exc}", file=sys.stderr)
+            return 1
     if args.command != "scan":
         try:
             if args.command == "update":
