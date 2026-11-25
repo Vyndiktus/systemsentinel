@@ -14,7 +14,7 @@ class GuiBackendTests(unittest.TestCase):
         self.assertEqual(findings, [])
 
     @patch("systemsentinel.gui.patch_findings", return_value=[{"package": "demo"}])
-    @patch("systemsentinel.gui.load_snapshot", return_value=({}, {"synthetic": True}))
+    @patch("systemsentinel.gui.load_snapshot", return_value=({"records": []}, {"synthetic": True}))
     @patch("systemsentinel.gui.collect_packages", return_value=[])
     @patch("systemsentinel.gui.detect_os", return_value={"ID": "debian", "VERSION_ID": "12"})
     def test_snapshot_backend(self, detect, collect, load, findings):

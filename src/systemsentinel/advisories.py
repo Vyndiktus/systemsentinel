@@ -55,6 +55,12 @@ def load_snapshot(path, digest=None, allow_synthetic=False, now=None):
     except (OSError, ValueError, TypeError, AttributeError, subprocess.SubprocessError) as exc:
         raise InventoryError(f"Cannot load advisory snapshot: {exc}") from exc
 
+def release_covered(snapshot, os_info):
+    return any((record["distribution"], record["release"]) ==
+               (os_info["ID"], os_info["VERSION_ID"])
+               for record in snapshot["records"])
+
+
 def patch_findings(snapshot, os_info, packages):
     records = {}
     for record in snapshot["records"]:

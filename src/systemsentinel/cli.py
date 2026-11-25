@@ -5,7 +5,7 @@ import json
 import sys
 
 from . import __version__
-from .advisories import load_snapshot, patch_findings
+from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import cache_path, import_snapshot, read_cache
 from .updates import collect_updates
 from .inventory import InventoryError, collect_packages, detect_os
@@ -61,6 +61,7 @@ def main(argv=None) -> int:
                 snapshot, metadata = read_cache(allow_synthetic=args.allow_synthetic)
             else:
                 snapshot, metadata = load_snapshot(args.db, args.sha256, args.allow_synthetic)
+            metadata["release_covered"] = release_covered(snapshot, os_info)
             findings = patch_findings(snapshot, os_info, packages)
             status = "synthetic" if metadata["synthetic"] else "local_snapshot"
     except InventoryError as exc:
@@ -88,6 +89,8 @@ def main(argv=None) -> int:
             print(f"Advisory database: {status}; age: {metadata['age_days']} days; stale: {metadata['stale']}")
             if not metadata["digest_checked"]:
                 print("Snapshot digest was not independently checked.")
+            if not metadata["release_covered"]:
+                print("No records for this exact distribution and release; assessment unavailable.")
             print(f"Vendor patch findings: {len(findings)} (limited to snapshot coverage)")
             for finding in findings:
                 print(f"{finding['package']}: {finding['installed_version']} -> {finding['fixed_version']} ({finding['advisory']})")

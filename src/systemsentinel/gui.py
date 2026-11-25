@@ -3,7 +3,7 @@ import queue
 import threading
 
 from .inventory import detect_os, collect_packages
-from .advisories import load_snapshot, patch_findings
+from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import read_cache
 from .updates import collect_updates
 
@@ -17,6 +17,7 @@ def scan_local(path="", digest="", allow_synthetic=False, cached=False):
     elif path:
         snapshot, metadata = load_snapshot(path, digest or None, allow_synthetic)
     if metadata is not None:
+        metadata["release_covered"] = release_covered(snapshot, os_info)
         findings = patch_findings(snapshot, os_info, packages)
     return os_info, packages, metadata, findings
 
@@ -122,6 +123,8 @@ def main():
         else:
             notes = ["FICTIONAL TEST DATA" if metadata["synthetic"] else "Local snapshot",
                      f"{metadata['age_days']} days old", f"{len(findings)} patch findings"]
+            if not metadata["release_covered"]:
+                notes.append("no records for this release")
             if metadata["stale"]:
                 notes.append("STALE")
             if not metadata["digest_checked"]:

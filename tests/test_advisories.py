@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from systemsentinel.advisories import load_snapshot, patch_findings
+from systemsentinel.advisories import load_snapshot, patch_findings, release_covered
 from systemsentinel.inventory import InventoryError, Package
 
 
@@ -42,3 +42,7 @@ class AdvisoryTests(unittest.TestCase):
     def test_fixed_version_not_flagged(self):
         packages = [Package("sentinel-demo", "1:2.0-1+deb12u2", "amd64")]
         self.assertEqual(patch_findings(self.snapshot, {"ID": "debian", "VERSION_ID": "12"}, packages), [])
+
+    def test_coverage_distinguishes_no_release_records(self):
+        self.assertTrue(release_covered(self.snapshot, {"ID": "debian", "VERSION_ID": "12"}))
+        self.assertFalse(release_covered(self.snapshot, {"ID": "ubuntu", "VERSION_ID": "12"}))
