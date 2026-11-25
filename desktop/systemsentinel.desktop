@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SystemSentinel
+Comment=Review installed packages and vendor patch guidance
+Exec=systemsentinel-gui
+Icon=security-high
+Terminal=false
+Categories=System;Security;

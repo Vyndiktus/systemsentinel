@@ -1,0 +1,82 @@
+# SystemSentinel
+
+A lightweight, read-only Linux security maintenance assistant for system administrators.
+
+**Development preview:** This version inventories installed packages on Debian and Ubuntu. It also supports offline vendor patch snapshots. The companion database currently contains fictional test data only; no operational advisory feed is available yet.
+
+## Quick start
+
+Requires Python 3.10+ and a Debian-family Linux host.
+
+```sh
+# Use --system-site-packages if you plan to use the distro's python3-apt module.
+python3 -m venv --system-site-packages .venv
+. .venv/bin/activate
+python -m pip install .
+systemsentinel scan
+systemsentinel scan --format json > inventory.json
+```
+
+No root privileges or network connections are required for inventory. The tool does not install, remove, or update packages. Inventory reports may contain sensitive system information; store them appropriately.
+
+## Desktop interface
+
+On a Linux desktop with Python Tk installed (for example, the distribution package `python3-tk`), launch:
+
+```sh
+systemsentinel-gui
+```
+
+The desktop view provides an optional snapshot file picker, a Start scan button, a package table, and vendor patch guidance. It uses the same read-only backend as the CLI. No database means inventory only.
+
+## Offline database preview
+
+```sh
+systemsentinel scan --db ../systemsentinel-db/examples/synthetic.json --allow-synthetic --format json
+```
+
+For a trusted vendor snapshot, omit the synthetic flag and provide its independently obtained digest using `--sha256 DIGEST`. Without a digest, authenticity is not verified. Snapshots older than seven days are marked stale. Results cover only the supplied records; an empty findings list does not establish that a system is secure.
+
+Import an independently obtained local snapshot digest to use the same data offline:
+
+```sh
+systemsentinel update --file snapshot.json --sha256 TRUSTED_DIGEST
+systemsentinel db status
+systemsentinel scan --offline
+```
+
+The import writes only the user's local cache; scans do not fetch or install packages. The cached digest checks accidental data corruption, not authenticity against someone who can change the entire cache. Automated vendor feed refresh and signed releases are future work. The desktop interface can also use the imported offline database.
+
+To add a menu shortcut, install the provided `desktop/systemsentinel.desktop` into your desktop's user applications directory (typically `~/.local/share/applications/`). Ensure `systemsentinel-gui` is available on your desktop session's PATH, or set its absolute executable path in the launcher.
+
+## Development
+
+Run directly from the source archive even when pip is unavailable:
+
+```sh
+PYTHONPATH=src python3 -m systemsentinel scan
+```
+
+
+```sh
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+```
+
+## Roadmap
+
+- Distribution-specific security advisory and update status, including vendor backports.
+- Patch availability and defensive mitigation recommendations.
+- Local configuration checks and file integrity auditing.
+- Additional Linux distributions and report formats.
+
+License: MIT.
+
+## Local APT update review
+
+With the distribution's optional `python3-apt` module available to your Python interpreter:
+
+```sh
+systemsentinel scan --updates --format json
+```
+
+This reads the system's existing APT indexes in memory. The GUI offers the same option. A candidate from a trusted Debian or Ubuntu security pocket is marked as such; other candidates are listed as general/other. This is an update-candidate review, not a comprehensive security advisory match. It cannot determine whether indexes are current or whether an update will actually be installed (for example because of phasing or dependencies). Review available updates using the distribution's normal update manager.
