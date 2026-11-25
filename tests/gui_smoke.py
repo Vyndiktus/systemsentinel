@@ -26,7 +26,8 @@ def start():
     if len(config) != 1:
         root.destroy()
         return
-    config[0].invoke()
+    if not config[0].instate(["selected"]):
+        config[0].invoke()
     buttons[0].invoke()
 
 

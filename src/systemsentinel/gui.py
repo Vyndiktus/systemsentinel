@@ -9,6 +9,8 @@ from .updates import collect_update_review, validity_message
 from .download import download_release
 from .checks import audit_config
 from .reporting import build_report, save_report
+from .lifecycle import lifecycle_message
+from importlib.util import find_spec
 
 
 def scan_local(path="", digest="", allow_synthetic=False, cached=False):
@@ -49,8 +51,8 @@ def main():
     digest = tk.StringVar()
     synthetic = tk.BooleanVar()
     cached = tk.BooleanVar()
-    apt_updates = tk.BooleanVar()
-    config_baseline = tk.BooleanVar()
+    apt_updates = tk.BooleanVar(value=find_spec("apt") is not None)
+    config_baseline = tk.BooleanVar(value=True)
     ttk.Label(top, text="Advisory snapshot (optional)").grid(row=2, column=0, sticky="w", padx=(0, 10))
     ttk.Entry(top, textvariable=path).grid(row=2, column=1, sticky="ew")
     def browse():
@@ -128,6 +130,7 @@ def main():
         (os_info, packages, metadata, findings), (updates, apt_status), checks = result
         active_report[0] = build_report(os_info, packages, metadata, findings, updates, checks, apt_status)
         save_button.configure(state="normal")
+        lifecycle = active_report[0]["maintenance_lifecycle"]
         for p in packages:
             inventory.insert("", "end", values=(p.name, p.version, p.architecture))
         for f in findings:
@@ -135,7 +138,7 @@ def main():
             current_findings[key] = f
         base = f"{os_info['PRETTY_NAME']} | {len(packages)} installed packages. "
         if metadata is None:
-            status.set(base + "Inventory only; no advisory database configured.")
+            status.set(base + "No package advisory database configured.")
         else:
             notes = ["FICTIONAL TEST DATA" if metadata["synthetic"] else "Local snapshot",
                      f"{metadata['age_days']} days old", f"{len(findings)} patch findings"]
@@ -159,6 +162,7 @@ def main():
             review = sum(item["status"] == "review" for item in checks)
             status.set(status.get() + f" Configuration: {review} to review across {len(checks)} checks.")
             tabs.select(3)
+        status.set(status.get() + " " + lifecycle_message(lifecycle))
 
     def run():
         snapshot_path, expected_digest, allow = path.get().strip(), digest.get().strip(), synthetic.get()

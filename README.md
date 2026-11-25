@@ -9,7 +9,7 @@ A lightweight, read-only Linux security maintenance assistant for system adminis
 Download the `.deb` package from the [GitHub release page](https://github.com/Vyndiktus/systemsentinel/releases) and verify its SHA-256 digest. From the download directory:
 
 ```sh
-sudo apt install ./systemsentinel_0.1.0.dev3_all.deb
+sudo apt install ./systemsentinel_0.1.0.dev4_all.deb
 systemsentinel --version
 ```
 
@@ -123,3 +123,14 @@ systemsentinel scan --config --format json > report.json
 The HTML report is self-contained and can be opened offline in a browser. In the GUI, click **Save report…** after a successful scan to export HTML or JSON. Reports are local files and may include private inventory information; review before sharing.
 
 APT expiry reporting distinguishes missing, expired, unknown, and within-declared-validity metadata. This is a local freshness indicator, not a new signature or completeness check. Use the distribution's package manager to refresh metadata when necessary.
+
+
+## Combined local security scan
+
+```sh
+systemsentinel scan --security --format html > report.html
+```
+
+This runs local APT candidate review and the permissions baseline together. The GUI enables these checks by default when its APT dependency is available. Every report also compares the exact installed distribution release with the bundled, reviewed SystemSentinel-DB maintenance catalog and includes official defensive references. Catalogs are versioned in [SystemSentinel-DB](https://github.com/Vyndiktus/systemsentinel-db); a bundled copy is provided for offline use and refreshed with application releases.
+
+Neither the lifecycle nor source directory identifies individual exploited vulnerabilities; reports explicitly mark exploitation status as not assessed. The package-level advisory snapshot remains a separate feature and no production advisory data is bundled.

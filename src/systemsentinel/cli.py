@@ -10,6 +10,7 @@ from .updates import collect_update_review, validity_message
 from .download import download_release
 from .checks import audit_config
 from .reporting import build_report, render_json, render_html
+from .lifecycle import lifecycle_message
 from .inventory import InventoryError, collect_packages, detect_os
 
 
@@ -22,6 +23,7 @@ def main(argv=None) -> int:
     scan.add_argument("--db", help="Path to a local vendor advisory snapshot")
     scan.add_argument("--sha256", help="Expected snapshot SHA-256 from a trusted source")
     scan.add_argument("--allow-synthetic", action="store_true", help="Permit fictional data for testing only")
+    scan.add_argument("--security", action="store_true", help="Run local security update and configuration checks together")
     scan.add_argument("--config", action="store_true", help="Audit a limited local file-permissions baseline")
     scan.add_argument("--updates", action="store_true", help="Review local APT update candidates without refreshing indexes")
     scan.add_argument("--offline", action="store_true", help="Use the previously imported local snapshot")
@@ -63,9 +65,9 @@ def main(argv=None) -> int:
     try:
         os_info = detect_os()
         packages = collect_packages(os_info)
-        if args.config:
+        if args.config or args.security:
             checks = audit_config()
-        if args.updates:
+        if args.updates or args.security:
             updates, apt_status = collect_update_review()
         if args.db or args.offline:
             if args.offline:
@@ -86,8 +88,14 @@ def main(argv=None) -> int:
     else:
         print(f"SystemSentinel {__version__} — {os_info['PRETTY_NAME']}")
         print(f"Installed packages: {len(packages)}")
+        lifecycle = report["maintenance_lifecycle"]
+        print(f"Distribution maintenance: {lifecycle_message(lifecycle)}")
+        print(f"  {lifecycle['guidance']}")
+        if lifecycle.get("source"):
+            print(f"  Vendor reference: {lifecycle['source']}")
+        print("Individual exploitation status: not assessed; consult official defensive references in the report.")
         if metadata is None:
-            print("No advisory database supplied; inventory only.")
+            print("No package advisory database supplied; package-level advisory status unavailable.")
         else:
             print(f"Advisory database: {report['advisory_status']}; age: {metadata['age_days']} days; stale: {metadata['stale']}")
             if not metadata["digest_checked"]:

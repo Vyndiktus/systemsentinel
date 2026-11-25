@@ -22,6 +22,7 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("&lt;script&gt;bad&lt;/script&gt;", html)
         self.assertIn("Not requested", html)
         self.assertIn("No advisory database configured", html)
+        self.assertIn("Individual exploitation status was not assessed", html)
         self.assertIn("demo", html)
 
     def test_save_report(self):

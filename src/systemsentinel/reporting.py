@@ -9,6 +9,7 @@ import tempfile
 
 from . import __version__
 from .updates import validity_message
+from .lifecycle import assess_lifecycle, lifecycle_message, defensive_references
 
 
 def build_report(os_info, packages, metadata, findings, updates=None, checks=None, apt_status=None):
@@ -26,6 +27,8 @@ def build_report(os_info, packages, metadata, findings, updates=None, checks=Non
         "apt_metadata_refreshed": False,
         "apt_index_validity": apt_status,
         "configuration_checks": checks,
+        "maintenance_lifecycle": assess_lifecycle(os_info),
+        "defensive_references": defensive_references(os_info),
         "packages": [asdict(package) for package in packages],
     }
 
@@ -52,7 +55,7 @@ def table(title, items, columns):
 def render_html(report):
     metadata = report["database"]
     if metadata is None:
-        advisory = "No advisory database configured; package inventory only."
+        advisory = "No advisory database configured; package-level advisory status unavailable."
     else:
         advisory = ("Fictional test data; not for operational use. " if metadata["synthetic"] else "Local snapshot. ")
         advisory += f"Age: {metadata['age_days']} days. "
@@ -88,6 +91,14 @@ def render_html(report):
               " · " + cell(report["generated_at"]) + " · version " + cell(report["application_version"]) + "</p>",
               '<div class="cards">' + cards + "</div><p>" + cell(advisory) + "</p>",
               "<p>" + cell(validity_message(report.get("apt_index_validity"))) + " These limited checks do not establish overall system security. Inventory reports may contain sensitive system information.</p></header>"]
+    lifecycle = report["maintenance_lifecycle"]
+    output.append("<section><h2>Distribution maintenance</h2><p>" + cell(lifecycle_message(lifecycle)) +
+                  "</p><p>" + cell(lifecycle.get("guidance", "")) + "</p><p>Catalog reviewed " +
+                  cell(lifecycle["reviewed_on"]) + ". " + cell(lifecycle.get("source", "")) + "</p></section>")
+    context = report["defensive_references"]
+    output.append("<section><h2>Threat context</h2><p>Individual exploitation status was not assessed. Official source-level references follow.</p></section>")
+    output.append(table("Official defensive references", context["references"], [
+        ("publisher", "Publisher"), ("intended_use", "Defensive use"), ("url", "Reference")]))
     output.append(table("Vendor patch guidance", None if metadata is None else report["patch_findings"], [
         ("package", "Package"), ("installed_version", "Installed"), ("fixed_version", "Fixed"), ("advisory", "Notice"),
         ("reference", "Vendor reference"), ("recommendation", "Recommendation")]))

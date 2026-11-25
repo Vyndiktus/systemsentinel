@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.0.dev4
 
 - Added read-only APT release expiry summaries to CLI, desktop and exported reports.
+- Added combined local security scan, default desktop scan checks, release maintenance assessment, and official defensive references.
 
 ## 0.1.0.dev3
 
