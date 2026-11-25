@@ -104,6 +104,13 @@ def main(argv=None) -> int:
         if lifecycle.get("source"):
             print(f"  Vendor reference: {lifecycle['source']}")
         print("Individual exploitation status: not assessed; consult official defensive references in the report.")
+        print("Defensive threat mitigation review:")
+        mitigation_review = report["threat_mitigations"]
+        if mitigation_review["catalog_stale"]:
+            print("  Guidance catalog is over 90 days old; check official guidance.")
+        for item in mitigation_review["records"]:
+            print(f"  {item['category']}: {item['status'].replace('_', ' ')}")
+            print(f"    {item['evidence']} {item['mitigation']}")
         if metadata is None:
             print("No package advisory database supplied; package-level advisory status unavailable.")
         else:

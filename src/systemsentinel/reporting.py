@@ -10,9 +10,11 @@ import tempfile
 from . import __version__
 from .updates import validity_message
 from .lifecycle import assess_lifecycle, lifecycle_message, defensive_references
+from .mitigation import review_mitigations
 
 
 def build_report(os_info, packages, metadata, findings, updates=None, checks=None, apt_status=None):
+    lifecycle = assess_lifecycle(os_info)
     status = "not_configured" if metadata is None else ("synthetic" if metadata["synthetic"] else "local_snapshot")
     return {
         "schema_version": 1,
@@ -27,7 +29,8 @@ def build_report(os_info, packages, metadata, findings, updates=None, checks=Non
         "apt_metadata_refreshed": False,
         "apt_index_validity": apt_status,
         "configuration_checks": checks,
-        "maintenance_lifecycle": assess_lifecycle(os_info),
+        "maintenance_lifecycle": lifecycle,
+        "threat_mitigations": review_mitigations(updates, apt_status, lifecycle),
         "defensive_references": defensive_references(os_info),
         "packages": [asdict(package) for package in packages],
     }
@@ -97,6 +100,12 @@ def render_html(report):
                   cell(lifecycle["reviewed_on"]) + ". " + cell(lifecycle.get("source", "")) + "</p></section>")
     context = report["defensive_references"]
     output.append("<section><h2>Threat context</h2><p>Individual exploitation status was not assessed. Official source-level references follow.</p></section>")
+    mitigations = report["threat_mitigations"]
+    output.append(table("Defensive threat mitigation review", mitigations["records"], [
+        ("category", "Category"), ("status", "Review status"), ("evidence", "Local evidence"),
+        ("mitigation", "Mitigation"), ("source", "Reference")]))
+    if mitigations["catalog_stale"]:
+        output.append("<p>Mitigation catalog review is older than 90 days; recheck official guidance.</p>")
     output.append(table("Official defensive references", context["references"], [
         ("publisher", "Publisher"), ("intended_use", "Defensive use"), ("url", "Reference")]))
     output.append(table("Vendor patch guidance", None if metadata is None else report["patch_findings"], [

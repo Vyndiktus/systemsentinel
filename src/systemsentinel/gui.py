@@ -95,6 +95,7 @@ def main():
     patch_table = make_table("Vendor patch guidance", ("Package", "Installed", "Fixed", "Advisory"), (220, 200, 200, 150))
     update_table = make_table("Available APT updates", ("Package", "Installed", "Candidate", "Source"), (220, 200, 200, 150))
     config_table = make_table("Configuration baseline", ("Path", "Status", "Details"), (240, 120, 480))
+    mitigation_table = make_table("Threat guidance", ("Category", "Status", "Evidence"), (240, 150, 480))
     detail = tk.StringVar(value="Select a vendor finding to see its recommendation and reference.")
     ttk.Label(root, textvariable=detail, padding=(16, 4), wraplength=850).grid(row=3, column=0, sticky="ew")
     footer = ttk.Frame(root, padding=(16, 4, 16, 16))
@@ -102,6 +103,7 @@ def main():
     results = queue.Queue()
     current_findings = {}
     current_checks = {}
+    current_mitigations = {}
     active_report = [None]
 
     def selection(_event):
@@ -115,6 +117,12 @@ def main():
         if selected and selected[0] in current_checks:
             detail.set(current_checks[selected[0]]["recommendation"])
     config_table.bind("<<TreeviewSelect>>", config_selection)
+    def mitigation_selection(_event):
+        selected = mitigation_table.selection()
+        if selected and selected[0] in current_mitigations:
+            item = current_mitigations[selected[0]]
+            detail.set(f"{item['mitigation']} Reference: {item['source']}")
+    mitigation_table.bind("<<TreeviewSelect>>", mitigation_selection)
 
     def poll():
         try:
@@ -132,6 +140,9 @@ def main():
         active_report[0] = build_report(os_info, packages, metadata, findings, updates, checks, apt_status)
         save_button.configure(state="normal")
         lifecycle = active_report[0]["maintenance_lifecycle"]
+        for item in active_report[0]["threat_mitigations"]["records"]:
+            key = mitigation_table.insert("", "end", values=(item["category"], item["status"].replace("_", " ").upper(), item["evidence"]))
+            current_mitigations[key] = item
         for p in packages:
             inventory.insert("", "end", values=(p.name, p.version, p.architecture))
         for f in findings:
@@ -178,12 +189,13 @@ def main():
         save_button.configure(state="disabled")
         check_updates = apt_updates.get()
         check_config = config_baseline.get()
-        for table in (inventory, patch_table, update_table, config_table):
+        for table in (inventory, patch_table, update_table, config_table, mitigation_table):
             children = table.get_children()
             if children:
                 table.delete(*children)
         current_findings.clear()
         current_checks.clear()
+        current_mitigations.clear()
         detail.set("Select a vendor finding to see its recommendation and reference.")
         scan_button.configure(state="disabled")
         import_button.configure(state="disabled")
@@ -225,12 +237,13 @@ def main():
             if ok:
                 active_report[0] = None
                 save_button.configure(state="disabled")
-                for table in (inventory, patch_table, update_table, config_table):
+                for table in (inventory, patch_table, update_table, config_table, mitigation_table):
                     children = table.get_children()
                     if children:
                         table.delete(*children)
                 current_findings.clear()
                 current_checks.clear()
+                current_mitigations.clear()
                 detail.set("Start a new scan to view current guidance.")
                 path.set("")
                 digest.set("")

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0.dev6
+
+- Added official defensive threat mitigation catalog and local maintenance evidence review in CLI, GUI and reports.
+
 ## 0.1.0.dev5
 
 - Added explicit application update checks through CLI and desktop with official release links.

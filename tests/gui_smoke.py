@@ -33,7 +33,7 @@ def start():
 
 def check():
     positions = [w for w in descendants(root) if isinstance(w, ttk.Treeview)]
-    if len(positions) == 4 and positions[0].get_children() and len(positions[3].get_children()) == 6:
+    if len(positions) == 5 and positions[0].get_children() and len(positions[3].get_children()) == 6 and len(positions[4].get_children()) == 5:
         buttons = [w for w in descendants(root) if isinstance(w, ttk.Button) and w.cget("text") == "Save report…"]
         if len(buttons) == 1 and not buttons[0].instate(["disabled"]):
             with tempfile.TemporaryDirectory() as directory:
