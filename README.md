@@ -80,3 +80,16 @@ systemsentinel scan --updates --format json
 ```
 
 This reads the system's existing APT indexes in memory. The GUI offers the same option. A candidate from a trusted Debian or Ubuntu security pocket is marked as such; other candidates are listed as general/other. This is an update-candidate review, not a comprehensive security advisory match. It cannot determine whether indexes are current or whether an update will actually be installed (for example because of phasing or dependencies). Review available updates using the distribution's normal update manager.
+
+## GitHub-hosted database snapshots
+
+To import a specific release of the companion [database repository](https://github.com/Vyndiktus/systemsentinel-db/releases), obtain its trusted SHA-256 value independently and run:
+
+```sh
+systemsentinel update --release RELEASE_TAG --sha256 TRUSTED_DIGEST
+systemsentinel scan --offline
+```
+
+The update command downloads only `snapshot.json` from the named project release, verifies it, then atomically replaces the local cache. It does not send the package inventory or install anything. A failed download or verification preserves the previous cache. Fictional test snapshots require explicit test-mode opt-in and must not be used for production assessments.
+
+Desktop users can choose **Import GitHub release…**, enter the tag and trusted digest, and then click **Start scan**.

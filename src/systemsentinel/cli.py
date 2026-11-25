@@ -8,6 +8,7 @@ from . import __version__
 from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import cache_path, import_snapshot, read_cache
 from .updates import collect_updates
+from .download import download_release
 from .inventory import InventoryError, collect_packages, detect_os
 
 
@@ -22,8 +23,10 @@ def main(argv=None) -> int:
     scan.add_argument("--allow-synthetic", action="store_true", help="Permit fictional data for testing only")
     scan.add_argument("--updates", action="store_true", help="Review local APT update candidates without refreshing indexes")
     scan.add_argument("--offline", action="store_true", help="Use the previously imported local snapshot")
-    update = commands.add_parser("update", help="Verify and import an existing local snapshot")
-    update.add_argument("--file", required=True)
+    update = commands.add_parser("update", help="Verify and import a local or GitHub release snapshot")
+    source = update.add_mutually_exclusive_group(required=True)
+    source.add_argument("--file", help="Import a local JSON file")
+    source.add_argument("--release", help="Download a specific SystemSentinel database release")
     update.add_argument("--sha256", required=True)
     update.add_argument("--allow-synthetic", action="store_true")
     db = commands.add_parser("db", help="Show cached database status")
@@ -33,7 +36,10 @@ def main(argv=None) -> int:
     if args.command != "scan":
         try:
             if args.command == "update":
-                metadata = import_snapshot(args.file, args.sha256, allow_synthetic=args.allow_synthetic)
+                if args.release:
+                    metadata = download_release(args.release, args.sha256, args.allow_synthetic)
+                else:
+                    metadata = import_snapshot(args.file, args.sha256, allow_synthetic=args.allow_synthetic)
             else:
                 _, metadata = read_cache(allow_synthetic=args.allow_synthetic)
             print(json.dumps({"path": str(cache_path()), **metadata}, indent=2))

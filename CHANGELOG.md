@@ -12,3 +12,4 @@
 - Added a Linux desktop menu launcher and cached snapshot option.
 - Added optional local APT candidate review, identifying trusted Debian and Ubuntu security pockets without refreshing package indexes or installing anything.
 - Added explicit reporting when a snapshot contains no records for the host's exact distribution and release.
+- Added explicit import of a checksummed JSON snapshot from a named GitHub database release.

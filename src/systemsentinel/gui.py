@@ -6,6 +6,7 @@ from .inventory import detect_os, collect_packages
 from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import read_cache
 from .updates import collect_updates
+from .download import download_release
 
 
 def scan_local(path="", digest="", allow_synthetic=False, cached=False):
@@ -25,7 +26,7 @@ def scan_local(path="", digest="", allow_synthetic=False, cached=False):
 def main():
     try:
         import tkinter as tk
-        from tkinter import filedialog, ttk, messagebox
+        from tkinter import filedialog, ttk, messagebox, simpledialog
         root = tk.Tk()
     except (ImportError, RuntimeError) as exc:
         raise SystemExit(f"Desktop interface unavailable: {exc}. Use the CLI or install your distribution's Python Tk package.")
@@ -107,6 +108,7 @@ def main():
             root.after(100, poll)
             return
         scan_button.configure(state="normal")
+        import_button.configure(state="normal")
         if not ok:
             status.set("Scan failed. No current results.")
             messagebox.showerror("Scan failed", str(result))
@@ -154,6 +156,7 @@ def main():
         current_findings.clear()
         detail.set("Select a vendor finding to see its recommendation and reference.")
         scan_button.configure(state="disabled")
+        import_button.configure(state="disabled")
         status.set("Scanning local package information…")
         def worker():
             try:
@@ -164,7 +167,51 @@ def main():
         root.after(100, poll)
     scan_button = ttk.Button(footer, text="Start scan", command=run)
     scan_button.pack(side="left")
-    ttk.Label(footer, text="This application never installs updates or changes system settings.").pack(side="left", padx=12)
+    def import_release():
+        tag = simpledialog.askstring("Database release", "Enter the GitHub database release tag:", parent=root)
+        if not tag:
+            return
+        trusted_digest = simpledialog.askstring("Verify release", "Enter the independently trusted SHA-256 digest:", parent=root)
+        if not trusted_digest:
+            return
+        allow = synthetic.get()
+        import_button.configure(state="disabled")
+        scan_button.configure(state="disabled")
+        status.set("Downloading and verifying the selected database release…")
+        incoming = queue.Queue()
+        def worker():
+            try:
+                incoming.put((True, download_release(tag.strip(), trusted_digest.strip(), allow)))
+            except Exception as exc:
+                incoming.put((False, exc))
+        def check():
+            try:
+                ok, result = incoming.get_nowait()
+            except queue.Empty:
+                root.after(100, check)
+                return
+            import_button.configure(state="normal")
+            scan_button.configure(state="normal")
+            if ok:
+                for table in (inventory, patch_table, update_table):
+                    children = table.get_children()
+                    if children:
+                        table.delete(*children)
+                current_findings.clear()
+                detail.set("Start a new scan to view current guidance.")
+                path.set("")
+                digest.set("")
+                cached.set(True)
+                status.set("Database imported. Start a new scan to review cached data.")
+            else:
+                status.set("Database import failed; the previous cache has not been replaced.")
+                messagebox.showerror("Database import failed", str(result))
+        threading.Thread(target=worker, daemon=True).start()
+        root.after(100, check)
+
+    import_button = ttk.Button(footer, text="Import GitHub release…", command=import_release)
+    import_button.pack(side="left", padx=8)
+    ttk.Label(footer, text="No package or system setting changes.").pack(side="left", padx=12)
     root.mainloop()
     return 0
 
