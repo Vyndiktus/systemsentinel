@@ -4,7 +4,18 @@ A lightweight, read-only Linux security maintenance assistant for system adminis
 
 **Development preview:** This version inventories installed packages on Debian and Ubuntu. It also supports offline vendor patch snapshots. The companion database currently contains fictional test data only; no operational advisory feed is available yet.
 
-## Quick start
+## Install on Debian or Ubuntu
+
+Download the `.deb` package from the [GitHub release page](https://github.com/Vyndiktus/systemsentinel/releases) and verify its SHA-256 digest. From the download directory:
+
+```sh
+sudo apt install ./systemsentinel_0.1.0~dev3_all.deb
+systemsentinel --version
+```
+
+The package includes a SystemSentinel application-menu entry. The recommended packages enable APT update review and the desktop GUI. Server administrators can install without recommended packages if they only need inventory and offline reporting.
+
+## Run from source
 
 Requires Python 3.10+ and a Debian-family Linux host.
 

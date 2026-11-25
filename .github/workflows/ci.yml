@@ -30,3 +30,8 @@ jobs:
       - run: PYTHONPATH=src python3 -m systemsentinel scan --updates --config --format json > /tmp/sentinel-inventory.json
       - run: desktop-file-validate desktop/systemsentinel.desktop
       - run: PYTHONPATH=src xvfb-run -a python3 tests/gui_smoke.py
+      - run: python3 packaging/build_deb.py --output /tmp/systemsentinel-package
+      - run: dpkg -i /tmp/systemsentinel-package/*.deb
+      - run: systemsentinel --version
+      - run: systemsentinel scan --config --updates --format json > /tmp/installed-report.json
+      - run: desktop-file-validate /usr/share/applications/systemsentinel.desktop

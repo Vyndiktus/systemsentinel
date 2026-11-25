@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0.dev3
+
+- Added native architecture-independent Debian packages with CLI and desktop launchers.
+
 ## 0.1.0.dev2
 
 - Added a read-only system file permissions baseline in CLI and GUI reports.
