@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.0.dev2
 
 - Added a read-only system file permissions baseline in CLI and GUI reports.
+- Added standalone HTML reports and GUI export to HTML or JSON.
 
 ## 0.1.0.dev1
 

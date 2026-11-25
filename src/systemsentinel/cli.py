@@ -1,6 +1,5 @@
 """Command-line interface."""
 import argparse
-from dataclasses import asdict
 import json
 import sys
 
@@ -10,6 +9,7 @@ from .cache import cache_path, import_snapshot, read_cache
 from .updates import collect_updates
 from .download import download_release
 from .checks import audit_config
+from .reporting import build_report, render_json, render_html
 from .inventory import InventoryError, collect_packages, detect_os
 
 
@@ -18,7 +18,7 @@ def main(argv=None) -> int:
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
     scan = commands.add_parser("scan", help="Inventory locally installed packages")
-    scan.add_argument("--format", choices=("text", "json"), default="text")
+    scan.add_argument("--format", choices=("text", "json", "html"), default="text")
     scan.add_argument("--db", help="Path to a local vendor advisory snapshot")
     scan.add_argument("--sha256", help="Expected snapshot SHA-256 from a trusted source")
     scan.add_argument("--allow-synthetic", action="store_true", help="Permit fictional data for testing only")
@@ -57,7 +57,6 @@ def main(argv=None) -> int:
         parser.error("--sha256 and --allow-synthetic require --db or --offline")
     metadata = None
     findings = []
-    status = "not_configured"
     updates = None
     checks = None
     try:
@@ -74,31 +73,22 @@ def main(argv=None) -> int:
                 snapshot, metadata = load_snapshot(args.db, args.sha256, args.allow_synthetic)
             metadata["release_covered"] = release_covered(snapshot, os_info)
             findings = patch_findings(snapshot, os_info, packages)
-            status = "synthetic" if metadata["synthetic"] else "local_snapshot"
     except InventoryError as exc:
         print(f"systemsentinel: {exc}", file=sys.stderr)
         return 1
 
+    report = build_report(os_info, packages, metadata, findings, updates, checks)
     if args.format == "json":
-        print(json.dumps({
-            "schema_version": 1,
-            "distribution": os_info,
-            "package_count": len(packages),
-            "advisory_status": status,
-            "database": metadata,
-            "patch_findings": findings,
-            "apt_update_candidates": updates,
-            "configuration_checks": checks,
-            "apt_metadata_refreshed": False,
-            "packages": [asdict(package) for package in packages],
-        }, indent=2))
+        print(render_json(report), end="")
+    elif args.format == "html":
+        print(render_html(report), end="")
     else:
         print(f"SystemSentinel {__version__} — {os_info['PRETTY_NAME']}")
         print(f"Installed packages: {len(packages)}")
         if metadata is None:
             print("No advisory database supplied; inventory only.")
         else:
-            print(f"Advisory database: {status}; age: {metadata['age_days']} days; stale: {metadata['stale']}")
+            print(f"Advisory database: {report['advisory_status']}; age: {metadata['age_days']} days; stale: {metadata['stale']}")
             if not metadata["digest_checked"]:
                 print("Snapshot digest was not independently checked.")
             if not metadata["release_covered"]:

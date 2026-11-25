@@ -8,6 +8,7 @@ from .cache import read_cache
 from .updates import collect_updates
 from .download import download_release
 from .checks import audit_config
+from .reporting import build_report, save_report
 
 
 def scan_local(path="", digest="", allow_synthetic=False, cached=False):
@@ -98,6 +99,7 @@ def main():
     results = queue.Queue()
     current_findings = {}
     current_checks = {}
+    active_report = [None]
 
     def selection(_event):
         selected = patch_table.selection()
@@ -124,6 +126,8 @@ def main():
             messagebox.showerror("Scan failed", str(result))
             return
         (os_info, packages, metadata, findings), updates, checks = result
+        active_report[0] = build_report(os_info, packages, metadata, findings, updates, checks)
+        save_button.configure(state="normal")
         for p in packages:
             inventory.insert("", "end", values=(p.name, p.version, p.architecture))
         for f in findings:
@@ -165,6 +169,8 @@ def main():
         if not snapshot_path and not use_cache and (expected_digest or allow):
             messagebox.showerror("Snapshot required", "Choose a snapshot before using its options.")
             return
+        active_report[0] = None
+        save_button.configure(state="disabled")
         check_updates = apt_updates.get()
         check_config = config_baseline.get()
         for table in (inventory, patch_table, update_table, config_table):
@@ -212,6 +218,8 @@ def main():
             import_button.configure(state="normal")
             scan_button.configure(state="normal")
             if ok:
+                active_report[0] = None
+                save_button.configure(state="disabled")
                 for table in (inventory, patch_table, update_table, config_table):
                     children = table.get_children()
                     if children:
@@ -231,6 +239,19 @@ def main():
 
     import_button = ttk.Button(footer, text="Import GitHub release…", command=import_release)
     import_button.pack(side="left", padx=8)
+    def export_report():
+        if active_report[0] is None:
+            return
+        selected = filedialog.asksaveasfilename(parent=root, defaultextension=".html",
+            filetypes=[("HTML report", "*.html"), ("JSON report", "*.json")])
+        if selected:
+            try:
+                save_report(selected, active_report[0], "json" if selected.lower().endswith(".json") else "html")
+                messagebox.showinfo("Report saved", "The report was saved locally. Treat system inventory as sensitive information.")
+            except OSError as exc:
+                messagebox.showerror("Report not saved", str(exc))
+    save_button = ttk.Button(footer, text="Save report…", command=export_report, state="disabled")
+    save_button.pack(side="left", padx=8)
     ttk.Label(footer, text="No package or system setting changes.").pack(side="left", padx=12)
     root.mainloop()
     return 0

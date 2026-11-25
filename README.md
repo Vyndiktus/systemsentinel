@@ -101,3 +101,12 @@ systemsentinel scan --config
 ```
 
 The configuration baseline reviews metadata (ownership and permission bits) for six standard system files. It never reads private file contents or changes permissions. A review result calls for comparison with distribution defaults; a pass only describes this single check, not overall system security. The desktop interface offers the same option.
+
+## Save or share a report
+
+```sh
+systemsentinel scan --config --updates --format html > report.html
+systemsentinel scan --config --format json > report.json
+```
+
+The HTML report is self-contained and can be opened offline in a browser. In the GUI, click **Save report…** after a successful scan to export HTML or JSON. Reports are local files and may include private inventory information; review before sharing.

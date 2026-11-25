@@ -1,5 +1,7 @@
 """Run with xvfb-run on a Linux CI worker with python3-tk."""
 import tkinter as tk
+import tempfile
+from pathlib import Path
 from tkinter import ttk
 from unittest.mock import patch
 from systemsentinel.gui import main
@@ -31,7 +33,13 @@ def start():
 def check():
     positions = [w for w in descendants(root) if isinstance(w, ttk.Treeview)]
     if len(positions) == 4 and positions[0].get_children() and len(positions[3].get_children()) == 6:
-        result["passed"] = True
+        buttons = [w for w in descendants(root) if isinstance(w, ttk.Button) and w.cget("text") == "Save report…"]
+        if len(buttons) == 1 and not buttons[0].instate(["disabled"]):
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "report.html"
+                with patch("tkinter.filedialog.asksaveasfilename", return_value=str(path)), patch("tkinter.messagebox.showinfo"):
+                    buttons[0].invoke()
+                result["passed"] = path.exists() and "Configuration baseline" in path.read_text()
         root.destroy()
     else:
         root.after(100, check)
