@@ -5,7 +5,7 @@ import threading
 from .inventory import detect_os, collect_packages
 from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import read_cache
-from .updates import collect_updates
+from .updates import collect_update_review, validity_message
 from .download import download_release
 from .checks import audit_config
 from .reporting import build_report, save_report
@@ -125,8 +125,8 @@ def main():
             status.set("Scan failed. No current results.")
             messagebox.showerror("Scan failed", str(result))
             return
-        (os_info, packages, metadata, findings), updates, checks = result
-        active_report[0] = build_report(os_info, packages, metadata, findings, updates, checks)
+        (os_info, packages, metadata, findings), (updates, apt_status), checks = result
+        active_report[0] = build_report(os_info, packages, metadata, findings, updates, checks, apt_status)
         save_button.configure(state="normal")
         for p in packages:
             inventory.insert("", "end", values=(p.name, p.version, p.architecture))
@@ -150,7 +150,7 @@ def main():
         if updates is not None:
             for item in updates:
                 update_table.insert("", "end", values=(item["package"], item["installed_version"], item["candidate_version"], "Security pocket" if item["security_pocket"] else "General/other"))
-            status.set(status.get() + f" APT candidates: {len(updates)}; index freshness unknown.")
+            status.set(status.get() + f" APT candidates: {len(updates)}. {validity_message(apt_status)}")
             tabs.select(2)
         if checks is not None:
             for item in checks:
@@ -185,7 +185,7 @@ def main():
         status.set("Scanning local package information…")
         def worker():
             try:
-                results.put((True, (scan_local(snapshot_path, expected_digest, allow, use_cache), collect_updates() if check_updates else None, audit_config() if check_config else None)))
+                results.put((True, (scan_local(snapshot_path, expected_digest, allow, use_cache), collect_update_review() if check_updates else (None, None), audit_config() if check_config else None)))
             except Exception as exc:
                 results.put((False, exc))
         threading.Thread(target=worker, daemon=True).start()

@@ -6,7 +6,7 @@ import sys
 from . import __version__
 from .advisories import load_snapshot, patch_findings, release_covered
 from .cache import cache_path, import_snapshot, read_cache
-from .updates import collect_updates
+from .updates import collect_update_review, validity_message
 from .download import download_release
 from .checks import audit_config
 from .reporting import build_report, render_json, render_html
@@ -58,6 +58,7 @@ def main(argv=None) -> int:
     metadata = None
     findings = []
     updates = None
+    apt_status = None
     checks = None
     try:
         os_info = detect_os()
@@ -65,7 +66,7 @@ def main(argv=None) -> int:
         if args.config:
             checks = audit_config()
         if args.updates:
-            updates = collect_updates()
+            updates, apt_status = collect_update_review()
         if args.db or args.offline:
             if args.offline:
                 snapshot, metadata = read_cache(allow_synthetic=args.allow_synthetic)
@@ -77,7 +78,7 @@ def main(argv=None) -> int:
         print(f"systemsentinel: {exc}", file=sys.stderr)
         return 1
 
-    report = build_report(os_info, packages, metadata, findings, updates, checks)
+    report = build_report(os_info, packages, metadata, findings, updates, checks, apt_status)
     if args.format == "json":
         print(render_json(report), end="")
     elif args.format == "html":
@@ -98,7 +99,8 @@ def main(argv=None) -> int:
                 print(f"{finding['package']}: {finding['installed_version']} -> {finding['fixed_version']} ({finding['advisory']})")
                 print(f"  {finding['recommendation']} {finding['reference']}")
         if updates is not None:
-            print(f"APT update candidates: {len(updates)} from existing indexes; freshness unknown.")
+            print(f"APT update candidates: {len(updates)} from existing indexes.")
+            print(validity_message(apt_status))
             for update in updates:
                 category = "security pocket" if update["security_pocket"] else "general/other"
                 print(f"  {update['package']}: {update['installed_version']} -> {update['candidate_version']} ({category})")

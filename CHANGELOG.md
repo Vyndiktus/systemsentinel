@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added read-only APT release expiry summaries to CLI, desktop and exported reports.
+
 ## 0.1.0.dev3
 
 - Added native architecture-independent Debian packages with CLI and desktop launchers.

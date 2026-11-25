@@ -8,9 +8,10 @@ from pathlib import Path
 import tempfile
 
 from . import __version__
+from .updates import validity_message
 
 
-def build_report(os_info, packages, metadata, findings, updates=None, checks=None):
+def build_report(os_info, packages, metadata, findings, updates=None, checks=None, apt_status=None):
     status = "not_configured" if metadata is None else ("synthetic" if metadata["synthetic"] else "local_snapshot")
     return {
         "schema_version": 1,
@@ -23,6 +24,7 @@ def build_report(os_info, packages, metadata, findings, updates=None, checks=Non
         "patch_findings": findings,
         "apt_update_candidates": updates,
         "apt_metadata_refreshed": False,
+        "apt_index_validity": apt_status,
         "configuration_checks": checks,
         "packages": [asdict(package) for package in packages],
     }
@@ -85,7 +87,7 @@ def render_html(report):
               "<header><h1>SystemSentinel scan report</h1><p class=\"meta\">" + cell(report["distribution"].get("PRETTY_NAME", "Linux")) +
               " · " + cell(report["generated_at"]) + " · version " + cell(report["application_version"]) + "</p>",
               '<div class="cards">' + cards + "</div><p>" + cell(advisory) + "</p>",
-              "<p>APT index freshness is unknown. These limited checks do not establish overall system security. Inventory reports may contain sensitive system information.</p></header>"]
+              "<p>" + cell(validity_message(report.get("apt_index_validity"))) + " These limited checks do not establish overall system security. Inventory reports may contain sensitive system information.</p></header>"]
     output.append(table("Vendor patch guidance", None if metadata is None else report["patch_findings"], [
         ("package", "Package"), ("installed_version", "Installed"), ("fixed_version", "Fixed"), ("advisory", "Notice"),
         ("reference", "Vendor reference"), ("recommendation", "Recommendation")]))

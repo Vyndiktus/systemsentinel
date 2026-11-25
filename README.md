@@ -90,7 +90,7 @@ With the distribution's optional `python3-apt` module available to your Python i
 systemsentinel scan --updates --format json
 ```
 
-This reads the system's existing APT indexes in memory. The GUI offers the same option. A candidate from a trusted Debian or Ubuntu security pocket is marked as such; other candidates are listed as general/other. This is an update-candidate review, not a comprehensive security advisory match. It cannot determine whether indexes are current or whether an update will actually be installed (for example because of phasing or dependencies). Review available updates using the distribution's normal update manager.
+This reads the system's existing APT indexes in memory. The GUI offers the same option. A candidate from a trusted Debian or Ubuntu security pocket is marked as such; other candidates are listed as general/other. This is an update-candidate review, not a comprehensive security advisory match. It summarizes any declared expiry in locally cached release files but cannot establish that all indexes are current or whether an update will actually be installed (for example because of phasing or dependencies). Review available updates using the distribution's normal update manager.
 
 ## GitHub-hosted database snapshots
 
@@ -121,3 +121,5 @@ systemsentinel scan --config --format json > report.json
 ```
 
 The HTML report is self-contained and can be opened offline in a browser. In the GUI, click **Save report…** after a successful scan to export HTML or JSON. Reports are local files and may include private inventory information; review before sharing.
+
+APT expiry reporting distinguishes missing, expired, unknown, and within-declared-validity metadata. This is a local freshness indicator, not a new signature or completeness check. Use the distribution's package manager to refresh metadata when necessary.
